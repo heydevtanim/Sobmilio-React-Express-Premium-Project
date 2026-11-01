@@ -1,0 +1,18 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { catalogRouter } from './routes/catalog.js';
+import { paymentRouter } from './routes/payments.js';
+const app=express();
+app.disable('x-powered-by');
+app.use(helmet({crossOriginResourcePolicy:{policy:'cross-origin'}}));
+app.use(cors({origin:process.env.CLIENT_ORIGIN?.split(',')||'http://localhost:5173',credentials:true}));
+app.use(express.json({limit:'1mb'}));
+app.use('/api',rateLimit({windowMs:15*60*1000,limit:300,standardHeaders:true,legacyHeaders:false}));
+app.get('/api/health',(_req,res)=>res.json({ok:true,service:'sobmilio-api',version:'1.0.0'}));
+app.use('/api/catalog',catalogRouter);
+app.use('/api/payments',paymentRouter);
+app.use((err,_req,res,_next)=>{console.error(err);res.status(500).json({error:'INTERNAL_SERVER_ERROR',message:'Something went wrong.'})});
+const port=Number(process.env.PORT||4000);app.listen(port,()=>console.log(`Sobmilio API listening on :${port}`));
